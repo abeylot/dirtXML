@@ -21,9 +21,20 @@ struct SampleXmlVisitor
        std::cout << "tag contains string : [" << s << "]\n";
 	}
 
+    void xmlDescriptor(std::string& s)
+    {
+       std::cout << "xml infos : [" << s << "]\n";
+	}
+
     void startTag(const std::vector<dirtXML::SeqBalise*>& tagStack, dirtXML::SeqBalise* b)
     {
-        std::cout << "starting tag : " <<  b->baliseName << "\n";
+		std::string path;
+        for (int i = 0; i < tagStack.size(); i++)
+		{
+				path  += tagStack[i]->baliseName;
+				path  += "->";
+		}
+        std::cout << "starting tag : " <<  path << b->baliseName << "\n";
         for (auto attribute : b->keyValues)
         {
             std::cout << "attribute : " << attribute.first << " value : " << attribute.second << "\n";
@@ -40,9 +51,12 @@ struct SampleXmlVisitor
 static void testXmlParsing()
 {
    SampleXmlVisitor v;
-   std::string s =         "<level1>"
+   std::string s =         "<?xml version=\"1.0\" encoding=\"ISO-8859-1\" standalone=\"yes\"?>"
+                           "<level1>"
                            "    my string 1 "
                            "    <level2 attr1=\"val1\" attr2=\"val2\"/>"
+                           "    <![CDATA[<my cdata "
+                           "    string>]]>"
                            "</level1>";
 
    std::stringstream my_stream(s);

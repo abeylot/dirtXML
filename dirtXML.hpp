@@ -10,6 +10,8 @@
 #include <iostream>
 #include <sstream>
 
+#define  CDATA_BEGIN     "<![C",4
+#define  CDATA_END       "]]>",3
 #define  COMMENT_BEGIN   "<!--",4
 #define  MANIFEST_BEGIN  "<?",2
 #define  ENDTAG_BEGIN    "</",2
@@ -64,6 +66,7 @@ public:
 #define STATE_ATTRNAME  5
 #define STATE_ATTRVALUE 6
 #define STATE_MANIFEST  7
+#define STATE_CDATA     8
 
 #define BUFFLEN 16000
 
@@ -89,6 +92,7 @@ struct ParseContext
         unsigned int baliseNameLen = 0;
         SeqBalise* curBalise;
         std::string stringNode = "";
+        std::string manifest = "";
         short skip = 0;
 };
 
@@ -201,17 +205,18 @@ private:
             {
                 p.state = STATE_MANIFEST;
                 p.skip = 1;
+                p.manifest = "";
+            }
+            else if (sq.check(CDATA_BEGIN))
+            {
+                p.state = STATE_CDATA;
+                p.skip = 8;
             }
             else if (sq.check(ENDTAG_BEGIN))
             {
                 p.state = STATE_TAGEND;
                 p.curBalise = tagStack->back();
                 tagStack->pop_back();
-                if(p.stringNode.size())
-                {
-                    visitor.stringNode(*tagStack, p.stringNode);
-                    p.stringNode = "";
-                }
                 if(p.stringNode.size())
                 {
                     visitor.stringNode(*tagStack, p.stringNode);
@@ -365,6 +370,29 @@ private:
             {
                 p.state=STATE_UNKNOWN;
                 p.skip = 1;
+                if(p.manifest.size())
+                {
+                    visitor.xmlDescriptor(p.manifest);
+                    p.stringNode = "";
+                }
+            }
+	        else
+            {
+                 p.manifest += sq.c[0];
+            }
+            break;
+            break;
+
+        case STATE_CDATA:
+            if (sq.check(CDATA_END))
+            {
+                p.state=STATE_UNKNOWN;
+                p.skip = 2;
+            }
+	        else
+            {
+                 p.stringNode += sq.c[0];
+                 //std::cout << " -----[" << stringNode << "]\n";
             }
             break;
 
